@@ -1,0 +1,8 @@
+langgraph
+langchain-openai
+langchain
+streamlit
+requests
+tavily-python
+python-dotenv
+fpdf2
