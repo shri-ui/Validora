@@ -72,31 +72,6 @@ The system uses a **fan-out / fan-in** pattern powered by LangGraph:
 3. **Fan-In** — LangGraph waits for all agents to finish, then merges their results
 4. **Scoring** — A final scoring node synthesizes everything into a structured verdict
 
-### LangGraph Flow
-
-```mermaid
-graph TD
-    A["🚀 START"] --> B["🔍 Competitor Agent"]
-    A --> C["📊 Market Sizing Agent"]
-    A --> D["💬 Sentiment Agent"]
-    A --> E["⚠️ OS Risk Agent"]
-
-    B --> F["🧠 Scoring Engine"]
-    C --> F
-    D --> F
-    E --> F
-
-    F --> G["✅ END"]
-
-    style A fill:#6366f1,stroke:#4f46e5,color:#fff
-    style B fill:#667eea,stroke:#5a67d8,color:#fff
-    style C fill:#764ba2,stroke:#6b3fa0,color:#fff
-    style D fill:#f59e0b,stroke:#d97706,color:#fff
-    style E fill:#ef4444,stroke:#dc2626,color:#fff
-    style F fill:#059669,stroke:#047857,color:#fff
-    style G fill:#6366f1,stroke:#4f46e5,color:#fff
-```
-
 ### State Management
 
 The system uses a `TypedDict` state schema with a **reducer pattern** for safe parallel writes:
