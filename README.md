@@ -59,6 +59,12 @@ All of this happens in approximately **10–15 seconds**.
 
 ## 🏗️ Architecture
 
+<div align="center">
+
+<img src="assets/architecture.png" alt="System Architecture" width="700"/>
+
+</div>
+
 The system uses a **fan-out / fan-in** pattern powered by LangGraph:
 
 1. **Fan-Out** — The user's startup idea is sent simultaneously to 4 independent research agents
