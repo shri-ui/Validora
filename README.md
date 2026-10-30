@@ -1,19 +1,8 @@
----
-title: Startup Validator
-emoji: 🚀
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: true
-license: mit
-short_description: AI Multi-Agent System for Startup Idea Validation
----
-
 <div align="center">
 
-# 🚀 Startup Validator
+# 🚀 Validora
 
-### AI-Powered Multi-Agent Due Diligence — in Seconds
+### AI-assisted startup research and idea validation
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
@@ -21,9 +10,7 @@ short_description: AI Multi-Agent System for Startup Idea Validation
 [![Django](https://img.shields.io/badge/Django-Backend-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![xAI](https://img.shields.io/badge/Grok-LLM-000000?style=for-the-badge)](https://x.ai/)
 
-**Enter a startup idea → 4 AI agents research it in parallel → Get a Go / Caution / No-Go verdict with a confidence score.**
-
-[Live Demo](https://huggingface.co/spaces/vaibhavbasidoni/startup-validator) · [Report Bug](https://huggingface.co/spaces/vaibhavbasidoni/startup-validator/discussions) · [Request Feature](https://huggingface.co/spaces/vaibhavbasidoni/startup-validator/discussions)
+**Explore a startup idea with web, community, and open-source research, then review a structured viability score and verdict.**
 
 </div>
 
@@ -45,14 +32,16 @@ short_description: AI Multi-Agent System for Startup Idea Validation
 
 ## 🧠 Overview
 
-**Startup Validator** is a multi-agent AI system that performs automated due diligence on startup ideas. Instead of spending weeks researching manually, this system deploys **4 specialized AI agents in parallel** that use real-time data from the web, HackerNews, and GitHub to evaluate your idea from multiple angles.
+**Validora** is an AI-assisted research tool for exploring startup ideas. It uses four focused research agents to gather information from web search, Hacker News, and GitHub, then produces a structured viability score, verdict, and summary with source links.
+
+The output is an early research aid, not a substitute for validating assumptions with customers or conducting professional financial, legal, or investment diligence.
 
 A final **Scoring Engine** synthesizes all findings into:
 - A **0–100 confidence score**
 - A categorical **Go / Caution / No-Go** verdict
 - An **executive summary** explaining the reasoning
 
-All of this happens in approximately **10–15 seconds**.
+Results depend on the response times of the language model and external research services.
 
 ---
 
@@ -64,27 +53,28 @@ All of this happens in approximately **10–15 seconds**.
 
 </div>
 
-The system uses a **fan-out / fan-in** pattern powered by LangGraph:
+The LangGraph workflow runs four research agents in sequence, then passes their findings to a scoring step:
 
-1. **Fan-Out** — The user's startup idea is sent simultaneously to 4 independent research agents
-2. **Parallel Execution** — All agents run concurrently, each querying different data sources
-3. **Fan-In** — LangGraph waits for all agents to finish, then merges their results
-4. **Scoring** — A final scoring node synthesizes everything into a structured verdict
+1. **Competitor research** — Searches the web for direct and indirect competitors.
+2. **Market research** — Searches for market size, growth, and industry context.
+3. **Community research** — Searches Hacker News for related discussions.
+4. **Open-source research** — Searches GitHub for related projects and alternatives.
+5. **Scoring** — The configured language model synthesizes the findings into a score, verdict, and summary.
 
 ### State Management
 
-The system uses a `TypedDict` state schema with a **reducer pattern** for safe parallel writes:
+The system uses a `TypedDict` state schema with a **reducer pattern** to collect results from each agent:
 
 ```python
 class AgentState(TypedDict):
     idea: str
-    results: Annotated[List[dict], operator.add]  # Safe parallel appends
+    results: Annotated[List[dict], operator.add]  # Append each agent's results
     score: int
     verdict: str
     summary: str
 ```
 
-The `operator.add` annotation on `results` ensures that when multiple agents finish simultaneously, their findings are **appended** (not overwritten) — a critical pattern for parallel execution.
+The `operator.add` annotation on `results` appends each agent's findings as the workflow progresses.
 
 ---
 
@@ -93,8 +83,8 @@ The `operator.add` annotation on `results` ensures that when multiple agents fin
 ### Step 1: User Input
 The user enters a startup idea through the React interface.
 
-### Step 2: Parallel Agent Execution
-Four agents execute simultaneously, each with a specialized role:
+### Step 2: Sequential Agent Research
+Four agents run in sequence, each with a specialized role:
 
 | Agent | Role | Data Source | Tool |
 |-------|------|-------------|------|
@@ -103,14 +93,14 @@ Four agents execute simultaneously, each with a specialized role:
 | 💬 **Sentiment Agent** | Analyzes developer/community sentiment | HackerNews | Algolia HN API |
 | ⚠️ **OS Risk Agent** | Finds open-source alternatives that threaten the idea | GitHub | GitHub REST API |
 
-Each agent uses the **ReAct (Reasoning + Acting) pattern** via LangGraph's `create_react_agent`:
+Each research agent uses LangGraph's `create_react_agent`:
 1. The LLM receives a specialized prompt and decides which tool to call
 2. The tool returns real-time data
 3. The LLM analyzes the data and produces a concise finding
 4. Source URLs are extracted and returned alongside findings
 
 ### Step 3: Scoring Engine
-After all agents finish, the **Scoring Engine** receives all findings and uses GPT-4o-mini with **structured output** (Pydantic schema) to generate:
+After all agents finish, the **Scoring Engine** sends their findings to the configured OpenRouter model and requests **structured output** matching a Pydantic schema. The default model is `x-ai/grok-4.7`; it can be changed with `OPENROUTER_MODEL`.
 
 ```json
 {
@@ -136,9 +126,9 @@ The React UI displays:
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **4 Parallel Agents** | Competitor, Market, Sentiment, and OS Risk analysis run simultaneously |
+| 🤖 **4 Research Agents** | Competitor, market, community sentiment, and open-source risk research |
 | 🔐 **Login / Signup** | Local email/password accounts with signed bearer-token sessions |
-| ⚡ **~10s Execution** | Full validation in approximately 10–15 seconds |
+| 📡 **Research Sources** | Web search, Hacker News discussions, and GitHub repositories |
 | 📊 **Structured Scoring** | Pydantic-enforced JSON output ensures consistent Go/Caution/No-Go verdicts |
 | 🔗 **Source Citations** | ChatGPT-style clickable source pills with favicons for every finding |
 | 📄 **PDF Export** | Download a professionally formatted report with scores, findings, and sources |
@@ -152,22 +142,22 @@ The React UI displays:
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Orchestration** | [LangGraph](https://langchain-ai.github.io/langgraph/) | Multi-agent graph with parallel fan-out/fan-in |
-| **LLM** | [Grok 4.7](https://openrouter.ai/x-ai/grok-4.7) via OpenRouter and `langchain-openai` | Powers all agents and the scoring engine |
+| **Orchestration** | [LangGraph](https://langchain-ai.github.io/langgraph/) | Sequential multi-agent research and scoring workflow |
+| **LLM** | OpenRouter via `langchain-openai` (defaults to `x-ai/grok-4.7`) | Powers the research agents and scoring engine |
 | **Web Search** | [Tavily API](https://tavily.com/) | Real-time web research for competitors and market data |
 | **Community Data** | [HackerNews Algolia API](https://hn.algolia.com/api) | Developer community sentiment analysis |
 | **Code Search** | [GitHub REST API](https://docs.github.com/en/rest) | Open-source alternative detection |
 | **API** | [Django](https://www.djangoproject.com/) | HTTP API for authentication, validation, and PDF reports |
 | **Frontend** | [React](https://react.dev/) + [Vite](https://vite.dev/) | Interactive web interface |
 | **PDF Generation** | [fpdf2](https://py-pdf.github.io/fpdf2/) | Downloadable validation reports |
-| **Deployment** | [Hugging Face Spaces](https://huggingface.co/spaces) | Free cloud hosting |
+| **Deployment** | Django API and Vite frontend | Deploy using hosting services that support Python and static or Node.js web apps |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-startup-validator/
+validora/
 ├── backend/                  # Django project, API app, and validation services
 │   ├── manage.py              # Django management entry point
 │   ├── config/                # Settings, root URLs, and WSGI app
@@ -187,10 +177,10 @@ startup-validator/
 
 ### Key Files Explained
 
-- **`backend/validator/state.py`** — Defines the shared state schema using `TypedDict` with `Annotated[List, operator.add]` for safe parallel writes
+- **`backend/validator/state.py`** — Defines the shared state schema using `TypedDict` with `Annotated[List, operator.add]` to append agent findings
 - **`backend/validator/tools.py`** — Three `@tool` functions that wrap external APIs (Tavily, HackerNews Algolia, GitHub)
 - **`backend/validator/agents.py`** — Four agent functions using `create_react_agent`, each extracting source URLs for citation
-- **`backend/validator/graph.py`** — Builds the parallel LangGraph workflow and scoring engine
+- **`backend/validator/graph.py`** — Builds the sequential LangGraph workflow and scoring engine
 - **`backend/api/views.py`** — Django API views for authentication, validation, caching, and PDF reports
 - **`frontend/src/App.tsx`** — React dashboard; API calls are in `frontend/src/lib/api.ts`
 
@@ -207,8 +197,8 @@ startup-validator/
 
 ```bash
 # Clone the repository
-git clone https://huggingface.co/spaces/vaibhavbasidoni/startup-validator
-cd startup-validator
+git clone https://github.com/<YOUR_GITHUB_USERNAME>/validora.git
+cd validora
 
 # Create virtual environment
 python -m venv venv
@@ -260,28 +250,14 @@ The React app will open at `http://localhost:5173`
 
 ## ☁️ Deployment
 
-This project uses a React frontend with a Django backend. For production, run `cd backend && gunicorn config.wsgi:application` and configure `DJANGO_ALLOWED_HOSTS`, `DJANGO_SECRET_KEY`, and the database connection in deployment secrets.
-
-### Deploy Your Own
-
-1. Create a new Space at [huggingface.co/new-space](https://huggingface.co/new-space) with **Docker** SDK
-2. Push your code:
-   ```bash
-   git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
-   git push space main
-   ```
-3. Add your API keys as **Secrets** in Space Settings:
-  - `OPENROUTER_API_KEY`
-  - `OPENROUTER_MODEL` (optional; defaults to `x-ai/grok-4.7`)
-   - `TAVILY_API_KEY`
-   - `GITHUB_TOKEN`
+The project has a Django API and a Vite-built React frontend. For production, serve the Django application with a production WSGI server (for example, `cd backend && gunicorn config.wsgi:application`), build and host the frontend, and configure the API URL and allowed hosts for your deployment. Store API keys, signing secrets, and database credentials in your hosting provider's secret manager; do not commit them to the repository.
 
 ---
 
 ## 🧩 Key Design Patterns
 
-### 1. Fan-Out / Fan-In Parallelism
-All 4 research agents execute simultaneously via LangGraph's parallel edges, reducing total execution time from ~40s (sequential) to ~10s.
+### 1. Sequential Research Workflow
+The workflow runs each research agent in sequence and then scores the collected findings.
 
 ### 2. ReAct Agent Pattern
 Each agent uses `create_react_agent` — the LLM autonomously decides when and how to call its tools, enabling flexible multi-step research.
@@ -289,8 +265,8 @@ Each agent uses `create_react_agent` — the LLM autonomously decides when and h
 ### 3. Structured LLM Output
 The scoring engine uses `.with_structured_output(FinalReport)` with a Pydantic schema to guarantee consistent JSON responses.
 
-### 4. Safe Parallel State Writes
-The `Annotated[List[dict], operator.add]` reducer pattern ensures concurrent agent results are merged without race conditions.
+### 4. Incremental State Updates
+The `Annotated[List[dict], operator.add]` reducer appends each agent's findings to the shared workflow state.
 
 ---
 
@@ -302,6 +278,6 @@ This project is licensed under the MIT License.
 
 <div align="center">
 
-**Built with ❤️ using LangGraph & Grok**
+**Built with LangGraph, Django, React, and OpenRouter**
 
 </div>
