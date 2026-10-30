@@ -1,8 +1,8 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel, Field
-from src.state import AgentState
-from src.agents import competitor_agent, market_sizing_agent, sentiment_agent, os_risk_agent, get_llm
+from validator.state import AgentState
+from validator.agents import competitor_agent, market_sizing_agent, sentiment_agent, os_risk_agent, get_llm
 
 # --- Structured Output Schema ---
 # We use Pydantic to tell the LLM exactly what JSON structure we want back.
@@ -65,17 +65,12 @@ def build_graph():
     
     # 3. Define the routing (Edges)
     
-    # Fan-out: START branches to all 4 research agents simultaneously
+    # Run the research agents in order so each model call finishes before
+    # the next one starts.
     workflow.add_edge(START, "competitor_agent")
-    workflow.add_edge(START, "market_sizing_agent")
-    workflow.add_edge(START, "sentiment_agent")
-    workflow.add_edge(START, "os_risk_agent")
-    
-    # Fan-in: All 4 agents must finish and point to the scoring node
-    # LangGraph automatically waits for all incoming edges to a node to complete
-    workflow.add_edge("competitor_agent", "scoring_node")
-    workflow.add_edge("market_sizing_agent", "scoring_node")
-    workflow.add_edge("sentiment_agent", "scoring_node")
+    workflow.add_edge("competitor_agent", "market_sizing_agent")
+    workflow.add_edge("market_sizing_agent", "sentiment_agent")
+    workflow.add_edge("sentiment_agent", "os_risk_agent")
     workflow.add_edge("os_risk_agent", "scoring_node")
     
     # Finish the graph
@@ -83,6 +78,31 @@ def build_graph():
     
     # Compile the graph into an executable format
     return workflow.compile()
+
+
+def iter_validation(idea: str):
+    """Yield each agent's progress while running research sequentially."""
+    state: AgentState = {"idea": idea, "results": [], "score": 0, "verdict": "", "summary": ""}
+    agents = [
+        ("competitor_analysis", competitor_agent),
+        ("market_sizing", market_sizing_agent),
+        ("community_sentiment", sentiment_agent),
+        ("os_risk", os_risk_agent),
+    ]
+    for agent_name, agent_fn in agents:
+        yield {"type": "agent", "agent": agent_name, "status": "running"}
+        update = agent_fn(state)
+        state["results"].extend(update.get("results", []))
+        yield {"type": "agent", "agent": agent_name, "status": "complete"}
+    yield {"type": "phase", "phase": "scoring"}
+    state.update(scoring_node(state))
+    yield {
+        "type": "result",
+        "score": state["score"],
+        "verdict": state["verdict"],
+        "summary": state["summary"],
+        "results": state["results"],
+    }
 
 # Export the compiled graph
 app = build_graph()

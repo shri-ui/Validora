@@ -3,13 +3,25 @@ import json
 from urllib.parse import urlparse
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from src.state import AgentState
-from src.tools import web_search, hn_search, github_search
+from validator.state import AgentState
+from validator.tools import web_search, hn_search, github_search
 from langgraph.prebuilt import create_react_agent
 
-# Initialize the OpenAI model we will use for our agents.
+# Initialize the OpenRouter model used by all agents and the scoring engine.
 def get_llm():
-    return ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ValueError("OPENROUTER_API_KEY is required to use the Grok model.")
+
+    return ChatOpenAI(
+        model=os.getenv("OPENROUTER_MODEL", "x-ai/grok-4.7"),
+        temperature=0.2,
+        # Avoid OpenRouter rejecting requests whose default output-token
+        # allowance exceeds the key's remaining credits.
+        max_tokens=int(os.getenv("OPENROUTER_MAX_TOKENS", "2048")),
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+    )
 
 
 # ──────────────────────────────────────────────

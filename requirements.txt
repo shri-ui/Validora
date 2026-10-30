@@ -1,8 +1,10 @@
 langgraph
 langchain-openai
 langchain
-streamlit
+Django>=5.1,<6
+gunicorn
 requests
 tavily-python
 python-dotenv
 fpdf2
+psycopg[binary]
