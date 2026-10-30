@@ -197,7 +197,7 @@ validora/
 
 ```bash
 # Clone the repository
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/validora.git
+git clone [https://github.com/<YOUR_GITHUB_USERNAME>/validora.git](https://github.com/shri-ui/Validora.git)
 cd validora
 
 # Create virtual environment
